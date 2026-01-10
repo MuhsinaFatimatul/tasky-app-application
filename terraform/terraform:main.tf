@@ -495,29 +495,29 @@ resource "aws_cloudtrail" "main" {
   depends_on = [aws_s3_bucket_policy.cloudtrail]
 }
 
-# Security Hub
-resource "aws_securityhub_account" "main" {}
+# Security Hub (Already enabled in account - commented out to avoid conflict)
+# resource "aws_securityhub_account" "main" {}
 
-resource "aws_securityhub_standards_subscription" "cis" {
-  standards_arn = "arn:aws:securityhub:${var.aws_region}::standards/cis-aws-foundations-benchmark/v/1.4.0"
-  depends_on    = [aws_securityhub_account.main]
-}
+# resource "aws_securityhub_standards_subscription" "cis" {
+#   standards_arn = "arn:aws:securityhub:${var.aws_region}::standards/cis-aws-foundations-benchmark/v/1.4.0"
+#   depends_on    = [aws_securityhub_account.main]
+# }
 
-# GuardDuty
-resource "aws_guardduty_detector" "main" {
-  enable = true
-  
-  datasources {
-    s3_logs {
-      enable = true
-    }
-    kubernetes {
-      audit_logs {
-        enable = true
-      }
-    }
-  }
-}
+# GuardDuty (Already enabled in account - commented out to avoid conflict)
+# resource "aws_guardduty_detector" "main" {
+#   enable = true
+#   
+#   datasources {
+#     s3_logs {
+#       enable = true
+#     }
+#     kubernetes {
+#       audit_logs {
+#         enable = true
+#       }
+#     }
+#   }
+# }
 
 # AWS Config
 resource "aws_s3_bucket" "config" {
@@ -586,51 +586,31 @@ resource "aws_iam_role_policy_attachment" "config" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
 }
 
-resource "aws_config_configuration_recorder" "main" {
-  name     = "tech-exercise-config"
-  role_arn = aws_iam_role.config.arn
-  
-  recording_group {
-    all_supported = true
-  }
-}
+# AWS Config (Configuration recorder already exists - commented out to avoid conflict)
+# resource "aws_config_configuration_recorder" "main" {
+#   name     = "tech-exercise-config"
+#   role_arn = aws_iam_role.config.arn
+#   
+#   recording_group {
+#     all_supported = true
+#   }
+# }
 
-resource "aws_config_delivery_channel" "main" {
-  name           = "tech-exercise-config"
-  s3_bucket_name = aws_s3_bucket.config.id
-  
-  depends_on = [aws_config_configuration_recorder.main, aws_s3_bucket_policy.config]
-}
+# resource "aws_config_delivery_channel" "main" {
+#   name           = "tech-exercise-config"
+#   s3_bucket_name = aws_s3_bucket.config.id
+#   
+#   depends_on = [aws_config_configuration_recorder.main, aws_s3_bucket_policy.config]
+# }
 
-resource "aws_config_configuration_recorder_status" "main" {
-  name       = aws_config_configuration_recorder.main.name
-  is_enabled = true
-  
-  depends_on = [aws_config_delivery_channel.main]
-}
+# resource "aws_config_configuration_recorder_status" "main" {
+#   name       = aws_config_configuration_recorder.main.name
+#   is_enabled = true
+#   
+#   depends_on = [aws_config_delivery_channel.main]
+# }
 
-# Config Rules for detecting misconfigurations
-resource "aws_config_config_rule" "s3_public_read" {
-  name = "s3-bucket-public-read-prohibited"
-  
-  source {
-    owner             = "AWS"
-    source_identifier = "S3_BUCKET_PUBLIC_READ_PROHIBITED"
-  }
-  
-  depends_on = [aws_config_configuration_recorder.main]
-}
-
-resource "aws_config_config_rule" "ssh_restricted" {
-  name = "restricted-ssh"
-  
-  source {
-    owner             = "AWS"
-    source_identifier = "INCOMING_SSH_DISABLED"
-  }
-  
-  depends_on = [aws_config_configuration_recorder.main]
-}
+# Config Rules for detecting misconfigurations (Commented out since Config Recorder is disabled)\n# resource "aws_config_config_rule" "s3_public_read" {\n#   name = "s3-bucket-public-read-prohibited"\n#   \n#   source {\n#     owner             = "AWS"\n#     source_identifier = "S3_BUCKET_PUBLIC_READ_PROHIBITED"\n#   }\n#   \n#   depends_on = [aws_config_configuration_recorder.main]\n# }\n\n# resource "aws_config_config_rule" "ssh_restricted" {\n#   name = "restricted-ssh"\n#   \n#   source {\n#     owner             = "AWS"\n#     source_identifier = "INCOMING_SSH_DISABLED"\n#   }\n#   \n#   depends_on = [aws_config_configuration_recorder.main]\n# }
 
 # Random string for unique bucket names
 resource "random_string" "bucket_suffix" {
@@ -645,34 +625,3 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_caller_identity" "current" {}
-
-# Outputs
-output "mongodb_vm_public_ip" {
-  value       = aws_instance.mongodb_vm.public_ip
-  description = "Public IP of MongoDB VM"
-}
-
-output "mongodb_vm_private_ip" {
-  value       = aws_instance.mongodb_vm.private_ip
-  description = "Private IP of MongoDB VM"
-}
-
-output "s3_backup_bucket" {
-  value       = aws_s3_bucket.backups.id
-  description = "S3 bucket for MongoDB backups (INTENTIONALLY PUBLIC)"
-}
-
-output "eks_cluster_endpoint" {
-  value       = aws_eks_cluster.main.endpoint
-  description = "EKS cluster endpoint"
-}
-
-output "eks_cluster_name" {
-  value       = aws_eks_cluster.main.name
-  description = "EKS cluster name"
-}
-
-output "configure_kubectl" {
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.main.name}"
-  description = "Command to configure kubectl"
-}
