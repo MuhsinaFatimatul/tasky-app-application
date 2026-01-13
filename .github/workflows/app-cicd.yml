@@ -113,24 +113,23 @@ jobs:
           # Substitute environment variables in manifests
           envsubst < kubernetes/Deployment.yml | kubectl apply -f -
           kubectl apply -f kubernetes/service.yml
-          kubectl apply -f kubernetes/ingress.yml
 
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/todoapp -n todoapp --timeout=5m
 
-      - name: Get ALB URL
-        id: alb
+      - name: Get NLB URL
+        id: nlb
         run: |
           sleep 10
-          ALB_URL=$(kubectl get ingress todoapp-ingress -n todoapp \
+          NLB_URL=$(kubectl get svc todoapp-service -n todoapp \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
-          echo "url=$ALB_URL" >> $GITHUB_OUTPUT
-          echo "Application URL: http://$ALB_URL"
+          echo "url=$NLB_URL" >> $GITHUB_OUTPUT
+          echo "Application URL: http://$NLB_URL"
 
       - name: Summary
         run: |
           echo "## Deployment Complete ✅" >> $GITHUB_STEP_SUMMARY
           echo "- **Image**: ${{ needs.build-and-push.outputs.image-tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **ALB**: http://${{ steps.alb.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **NLB**: http://${{ steps.nlb.outputs.url }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Cluster**: ${{ env.EKS_CLUSTER_NAME }}" >> $GITHUB_STEP_SUMMARY
