@@ -133,3 +133,4 @@ jobs:
           echo "url=$INGRESS_URL" >> $GITHUB_OUTPUT
           echo "Application URL: http://$INGRESS_URL"
 
+ 
