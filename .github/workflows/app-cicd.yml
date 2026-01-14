@@ -106,18 +106,22 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
+          # Build image values
+          FULL_IMAGE="${{ needs.build-and-push.outputs.image-tag }}"
+          export ECR_REGISTRY="${FULL_IMAGE%:*}"
+          export IMAGE_TAG="${FULL_IMAGE##*:}"
+          export MONGODB_URI="${MONGODB_URI}"
 
+          echo "Deploying image: ${ECR_REGISTRY}:${IMAGE_TAG}"
 
           # Apply namespace and RBAC
           kubectl apply -f kubernetes/Namespace.yml
           kubectl apply -f kubernetes/service-account.yml
           kubectl apply -f kubernetes/Rbac.yml
 
-          kubectl apply -f kubernetes/Deployment.yml
-
-          kubectl set image deployment/todoapp \
-            todoapp=${{ needs.build-and-push.outputs.image-tag }} \
-            -n todoapp
+          # IMPORTANT: restrict envsubst to only required vars
+          envsubst '${ECR_REGISTRY} ${IMAGE_TAG} ${MONGODB_URI}' \
+            < kubernetes/Deployment.yml | kubectl apply -f -
 
           kubectl rollout status deployment/todoapp -n todoapp --timeout=5m
           
