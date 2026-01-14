@@ -27,7 +27,7 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ steps.image.outputs.image }}
+      image_tag: "${{ secrets.ECR_REGISTRY }}:${{ github.sha }}"
 
     steps:
       - name: Checkout code
@@ -55,7 +55,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.image.outputs.image }}
+          image-ref: "${{ secrets.ECR_REGISTRY }}:${{ github.sha }}"
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -70,6 +70,8 @@ jobs:
       - name: Push image to ECR
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
+          ECR_REGISTRY="${{ secrets.ECR_REGISTRY }}"
+          IMAGE_TAG="${GITHUB_SHA::7}"
           docker push "${ECR_REGISTRY}:${IMAGE_TAG}"
           echo "Image pushed successfully"
 
