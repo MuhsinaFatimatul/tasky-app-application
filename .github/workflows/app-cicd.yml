@@ -47,8 +47,11 @@ jobs:
       - name: Build image tag
         id: image
         run: |
-          IMAGE_TAG="${{ secrets.ECR_REGISTRY }}:${{ github.sha }}"
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(date +%s)
+          IMAGE_TAG="${{ secrets.ECR_REGISTRY }}:${SHORT_SHA}-${TIMESTAMP}"
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "Building image: $IMAGE_TAG"
 
       - name: Build Docker image
@@ -101,10 +104,13 @@ jobs:
 
       - name: Deploy to EKS
         env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          IMAGE_TAG: ${{ github.sha }}
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
+          # Calculate unique tag from the full image tag
+          FULL_IMAGE="${{ needs.build-and-push.outputs.image-tag }}"
+          export ECR_REGISTRY=$(echo $FULL_IMAGE | cut -d: -f1)
+          export IMAGE_TAG=$(echo $FULL_IMAGE | cut -d: -f2)
+
           # Apply namespace and RBAC
           kubectl apply -f kubernetes/Namespace.yml
           kubectl apply -f kubernetes/service-account.yml
