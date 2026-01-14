@@ -107,7 +107,7 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
           # Build image values
-          FULL_IMAGE="${{ needs.build-and-push.outputs.image-tag }}"
+          FULL_IMAGE="${{ needs.build-and-push.outputs.image_tag }}"
           export ECR_REGISTRY="${FULL_IMAGE%:*}"
           export IMAGE_TAG="${FULL_IMAGE##*:}"
           
